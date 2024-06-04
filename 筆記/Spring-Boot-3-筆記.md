@@ -31,7 +31,7 @@ Last-Modified-Date: 2024-06-04T13:26:00
 
 ### Step.2 導入 Starter
 
-在 Springboot 中，提供了一系列的 Starter，只要想使用什麼功能，只要導入對應的 Starter 即可。
+在 Springboot 中，提供了一系列的 Starter，想使用什麼功能，只要導入對應的 Starter 即可。
 
 譬如，想使用 web 相關的功能，只要導入 `spring-boot-starter-web` 即可。
 
@@ -129,10 +129,7 @@ springboot 可以直接打包成 jar 檔運行，而不必放到 web server，�
 #### 1. 簡化整合
 
 若是以前單獨使用 spring mvc 的場景，那如果要開發 web 功能，就需要在 pom.xml
-導入 servlet、tomcat、spring-mvc 等諸多依賴，而 springboot 現在透過 maven 依賴
-傳遞的特性，整合了各種 Starter 啟動器，如果我們想使用 web 相關的功能，只需要導入
-`spring-boot-starter-web`即可，而`spring-boot-starter-web`裡面也可看到又導入了
-其他 Starter，譬如`spring-boot-starter-tomcat`等等。
+導入 servlet、tomcat、spring-mvc 等諸多依賴，而 springboot 現在透過 maven 依賴傳遞的特性，整合了各種 Starter 啟動器，如果我們想使用 web 相關的功能，只需要導入`spring-boot-starter-web`即可，而`spring-boot-starter-web`裡面也可看到又導入了其他 Starter，譬如`spring-boot-starter-tomcat`等等。
 
 ***因此，springboot 大大的簡化了我們在 pom.xml 導入依賴的配置。***
 
@@ -169,9 +166,9 @@ Spring Boot 了。
 
 ### 1. 依賴管理機制
 
-#### 1. 為什麼導入 starter-web 就將相關的 web 依賴都導入進來?
+#### 1. 為什麼導入 `spring-boot-starter-web` 就將相關的 web 依賴都導入進來?
 
-這是因為 springboot 已經將 web 開發場景會用到的 dependency 都寫好在 `spring-boot-starter-web`裡了，若查看`starter-web`，會看到裡面還有個 dependency `spring-boot-starter-tomcat`，而這個 `starter-tomcat`也寫好了 tomcat 會使用到的 dependency，因此只要導入`spring-boot-starter-web`，就會透過 maven 依賴傳遞的特性將這些 dependency 傳遞進來。
+這是因為 springboot 已經將 web 開發場景會用到的 dependency 都寫好在 `spring-boot-starter-web`裡了，若查看`spring-boot-starter-web`，會看到裡面還有個 dependency `spring-boot-starter-tomcat`，而這個 `starter-tomcat`也寫好了 tomcat 會使用到的 dependency，因此只要導入`spring-boot-starter-web`，就會透過 maven 依賴傳遞的特性將這些 dependency 傳遞進來。
 
 #### 2. 為什麼版本號都不用定義?
 
