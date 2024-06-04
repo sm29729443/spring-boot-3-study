@@ -183,3 +183,45 @@ Spring Boot 了。
 當然沒被 `spring-boot-starter-parent` 管理到的 dependency 依然需要自己寫版本號。
 
 ![原理圖](img/Snipaste_2024-06-04_16-19-37.jpg)
+
+### 2. 自動配置機制
+
+#### 1.初步理解
+
+以前需要手動編寫 .xml 或 configuration class 去配置一些核心組件，譬如 DispatcherServlet、
+ViewResolver 等等，而現在只要導入對應的 Starter 後即可馬上使用，springboot 會自動的
+幫我們配置好這些組件。
+
+以下code，若透過 IDEA debug mode 的 Evaluate Expression 去查看 `applicationContext.getBeanDefinitionNames()` 能看到裡面確實有 DispatcherServlet 這個 Bean。
+
+```java
+@SpringBootApplication
+public class Boot302DemoApplication {
+
+    public static void main(String[] args) {
+        ConfigurableApplicationContext applicationContext = SpringApplication.run(Boot302DemoApplication.class, args);
+        System.out.println("stop");
+    }
+}
+```
+
+##### 默認的 package scan 規則
+
+- 以前需要在 .xml 或 @ComponentScan 去指定包掃描的路徑，而在 springboot 中預設就是**掃描主程序class所在的 package 及其子 package**。
+- @SpringBootApplication Annotation 所在的 class 即是主程序 class。
+- 若想自定義掃描路徑，可透過 `@SpringBootApplication(scanBasePackages = "path")` 或 添加`@ComponentScan` 在主程序上，之所以可以這麼做，是因為`@SpringBootApplication`本來就是由`@ComponentScan`所組成的。
+
+![SpringBootApplicaiton Annotation](img/Snipaste_2024-06-04_16-45-08.jpg)
+
+##### 配置屬性的默認值
+
+在 application.properties 中，實際上每個屬性都會被綁定到某個 class 的屬性上。
+譬如以 `server.port` 為例，若對 application.properties 的 `server.port` 用 ctrl + 左鍵
+會導到 `ServerProperties.class` 上，而所有的屬性都是如此，會被綁定到某個 class 上。
+
+##### 簡介自動配置的原理
+
+若觀察`spring-boot-starter-web`等 starter，會看到都導入了一個`spring-boot-starter`，而這個`spring-boot-starter`又導入了`spring-boot-autoconfigure`，而這個`spring-boot-autoconfigure`編寫了很多 autoconfiguration class，只要導入對應的 starter，就會開啟哪個 starter 的 autoconfiguration class。
+
+至於這些 autoconfigutation class 具體是在哪邊被 springboot 執行，之後的章節介紹。
+![autoconfiguration](img/Snipaste_2024-06-04_17-03-41.jpg)
