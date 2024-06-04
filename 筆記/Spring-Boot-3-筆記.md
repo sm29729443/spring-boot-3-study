@@ -18,7 +18,7 @@ Last-Modified-Date: 2024-06-04T13:26:00
 
 ### Step.1 創建 Maven Project
 
-首先在 IDEA 建立一個 Empoty Maven Project，並且在 pom.xml 導入 `spring-boot-starter-parent`。
+首先在 IDEA 建立一個 Empty Maven Project，並且在 pom.xml 導入 `spring-boot-starter-parent`。
 
 ```xml
     <!--所有 springboot project 都必須繼承於 spring-boot-starter-parent-->
@@ -84,7 +84,7 @@ public class HelloController {
 
 訪問 localhost:8081/hello。確認執行成功。
 
-![call request 圖片](img\Snipaste_2024-06-04_13-56-54.jpg)
+![call request 圖片](img/Snipaste_2024-06-04_13-56-54.jpg)
 
 ### 打包 springboot
 
@@ -104,7 +104,7 @@ public class HelloController {
 
 接下來執行 `mvn clean package` 生成 jar 包，即可透過 `java -jar demo.jar` 運行 springboot project。
 
-![java 運行圖片](img\Snipaste_2024-06-04_14-06-39.jpg)
+![java 運行圖片](img/Snipaste_2024-06-04_14-06-39.jpg)
 
 #### springboot 提供的打包插件與 maven 原生的差別
 
