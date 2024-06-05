@@ -179,7 +179,7 @@ Spring Boot 了。
 如此一來，我們就不用自己去定義版本，不用嘗試哪些版本是有衝突的。
 當然沒被 `spring-boot-starter-parent` 管理到的 dependency 依然需要自己寫版本號。
 
-<img src="img/Snipaste_2024-06-04_16-19-37.jpg" alt="原理圖" style="zoom:50%" />
+<img src="img/Snipaste_2024-06-04_16-19-37.jpg" alt="原理圖" style="width:50%" />
 
 ### 2. 自動配置機制
 
