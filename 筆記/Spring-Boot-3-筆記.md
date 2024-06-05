@@ -208,7 +208,7 @@ public class Boot302DemoApplication {
 - @SpringBootApplication Annotation 所在的 class 即是主程序 class。
 - 若想自定義掃描路徑，可透過 `@SpringBootApplication(scanBasePackages = "path")` 或 添加`@ComponentScan` 在主程序上，之所以可以這麼做，是因為`@SpringBootApplication`本來就是由`@ComponentScan`所組成的。
 
-![SpringBootApplicaiton Annotation](img/Snipaste_2024-06-04_16-45-08.jpg)
+<img src="img/Snipaste_2024-06-04_16-45-08.jpg" alt="SpringBootApplicaiton Annotation" style="zoom:50%"/>
 
 ##### 配置屬性的默認值
 
@@ -221,7 +221,8 @@ public class Boot302DemoApplication {
 若觀察`spring-boot-starter-web`等 starter，會看到都導入了一個`spring-boot-starter`，而這個`spring-boot-starter`又導入了`spring-boot-autoconfigure`，而這個`spring-boot-autoconfigure`編寫了很多 autoconfiguration class，只要導入對應的 starter，就會開啟哪個 starter 的 autoconfiguration class。
 
 至於這些 autoconfigutation class 具體是在哪邊被 springboot 執行，目前還沒弄懂。
-![autoconfiguration](img/Snipaste_2024-06-04_17-03-41.jpg)
+
+<img src="img/Snipaste_2024-06-04_17-03-41.jpg" alt="autoconfiguration" style="zoom:50%"/>
 
 ## 3. 常用註解、條件註解
 
@@ -279,7 +280,8 @@ public class MyConfig {
  ```
 
 可以看到是 cat01 被加入到 IOC。
- ![條件註解範例](img/Snipaste_2024-06-04_18-37-34.jpg)
+
+<img src="img/Snipaste_2024-06-04_18-37-34.jpg" alt="條件註解範例" style="zoom:50%"/>
 
 ### 3.屬性綁定
 
@@ -316,7 +318,7 @@ public class MyConfig {
 >}
 >```
 
-![result](img/Snipaste_2024-06-05_13-29-40.jpg)
+<img src="img/Snipaste_2024-06-05_13-29-40.jpg" alt="result" style="zoom:50%"/>
 
 #### @EnableConfigurationProperties 範例
 
