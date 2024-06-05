@@ -220,5 +220,63 @@ public class Boot302DemoApplication {
 
 若觀察`spring-boot-starter-web`等 starter，會看到都導入了一個`spring-boot-starter`，而這個`spring-boot-starter`又導入了`spring-boot-autoconfigure`，而這個`spring-boot-autoconfigure`編寫了很多 autoconfiguration class，只要導入對應的 starter，就會開啟哪個 starter 的 autoconfiguration class。
 
-至於這些 autoconfigutation class 具體是在哪邊被 springboot 執行，之後的章節介紹。
+至於這些 autoconfigutation class 具體是在哪邊被 springboot 執行，目前還沒弄懂。
 ![autoconfiguration](img/Snipaste_2024-06-04_17-03-41.jpg)
+
+## 3. 常用註解、條件註解
+
+### 1. 常用註解
+
+這邊的 Annotation 功能要搞明白，後續自動配置原理會用到。
+
+因為除了 @import 外都明白功能，故只介紹 @import。
+
+### @import
+
+@import 的功能是用來導入 class 成為 Bean，而組件的名字為全類名。
+
+```java
+@Configuration
+@Import(要導入的 class)
+public class MyConfig {
+}
+```
+
+### 2. 條件註解
+
+@ConditionalOnClass：如果類路徑中存在這個類，則觸發指定行為
+
+@ConditionalOnMissingClass：如果類路徑中不存在這個類，則觸發指定行為
+
+@ConditionalOnBean：如果容器中存在這個Bean（元件），則觸發指定行為
+
+@ConditionalOnMissingBean：如果容器中不存在這個Bean（組件），則觸發指定行為
+
+如果條件註解是加到 configuration class 上的話，則註解生效，整個 configuration class 才生效。
+
+如果是加到 @Component class 上，效果會不會是條件註解生效，才把 class 加到 IOC 呢，還有待測試。
+
+#### 範例
+
+ 先添加 druid dependency，然後配置以下 configuration。
+
+ ```java
+ @Configuration
+public class MyConfig {
+
+    @Bean
+    @ConditionalOnClass(name="com.alibaba.druid.FastsqlException")
+    public Cat cat01() {
+        return new Cat();
+    }
+
+    @Bean
+    @ConditionalOnMissingClass(value = "com.alibaba.druid.FastsqlException")
+    public Dog dog01() {
+        return new Dog();
+    }
+}
+ ```
+
+可以看到是 cat01 被加入到 IOC。
+ ![123](img/Snipaste_2024-06-04_18-37-34.jpg)
