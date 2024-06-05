@@ -84,7 +84,7 @@ public class HelloController {
 
 訪問 localhost:8081/hello。確認執行成功。
 
-<img src="img/Snipaste_2024-06-04_13-56-54.jpg" alt="call request 圖片" style="zoom:75%"/>
+<img src="img/Snipaste_2024-06-04_13-56-54.jpg" alt="call request 圖片" style="width:75%"/>
 
 ### 打包 springboot
 
@@ -104,21 +104,20 @@ public class HelloController {
 
 接下來執行 `mvn clean package` 生成 jar 包，即可透過 `java -jar demo.jar` 運行 springboot project。
 
-<img src="img/Snipaste_2024-06-04_14-06-39.jpg" alt="java 運行圖片" style="zoom:100%"/>
+<img src="img/Snipaste_2024-06-04_14-06-39.jpg" alt="java 運行圖片" style="width:100%"/>
 
 #### springboot 提供的打包插件與 maven 原生的差別
 
+>##### jar 檔差別
+>
+>- maven 打包的 jar 檔只會包含者這個 project 自身的`.class file`和 `resource file` ，並不包含者第三方依賴的 jar 檔，因此運行時得手動添加使用到的第三方依賴。
+>- springboot 打包的 jar 檔會包含者 project 自身的 `.class file`和`resource file`外，也包含者第三方依賴，因此運行時只要確保環境有安裝 java，即可透過 `java -jar`運行 springboot 程式。
+
+>##### war 檔差別
+>
+>- war 檔的差異則較小，不管是 maven、springboot 打包出來的 war 檔都會包含者第三方依賴，而springboot 的 war 檔則可以自由的選擇要用內嵌的 web server 還是把 springboot.war 放到外部 web server 運行。
+
 springboot 可以直接打包成 jar 檔運行，而不必放到 web server，就是因為已經內嵌了 tomcat，而透過 springboot 插件打包出來的 jar 檔，也包含者 tomcat 等第三方依賴，因此才可直接透過 `java -jar`運行。
-
-##### jar 檔差別
-
-- maven 打包的 jar 檔只會包含者這個 project 自身的`.class file`和 `resource file` ，並不包含者第三方依賴的 jar 檔，因此運行時得手動添加使用到的第三方依賴。
-
-- springboot 打包的 jar 檔會包含者 project 自身的 `.class file`和`resource file`外，也包含者第三方依賴，因此運行時只要確保環境有安裝 java，即可透過 `java -jar`運行 springboot 程式。
-
-##### war 檔差別
-
-- war 檔的差異則較小，不管是 maven、springboot 打包出來的 war 檔都會包含者第三方依賴，而springboot 的 war 檔則可以自由的選擇要用內嵌的 web server 還是把 springboot.war 放到外部 web server 運行。
 
 ---
 
@@ -208,7 +207,7 @@ public class Boot302DemoApplication {
 - @SpringBootApplication Annotation 所在的 class 即是主程序 class。
 - 若想自定義掃描路徑，可透過 `@SpringBootApplication(scanBasePackages = "path")` 或 添加`@ComponentScan` 在主程序上，之所以可以這麼做，是因為`@SpringBootApplication`本來就是由`@ComponentScan`所組成的。
 
-<img src="img/Snipaste_2024-06-04_16-45-08.jpg" alt="SpringBootApplicaiton Annotation" style="zoom:50%"/>
+<img src="img/Snipaste_2024-06-04_16-45-08.jpg" alt="SpringBootApplicaiton Annotation" style="width:50%"/>
 
 ##### 配置屬性的默認值
 
@@ -222,7 +221,7 @@ public class Boot302DemoApplication {
 
 至於這些 autoconfigutation class 具體是在哪邊被 springboot 執行，目前還沒弄懂。
 
-<img src="img/Snipaste_2024-06-04_17-03-41.jpg" alt="autoconfiguration" style="zoom:50%"/>
+<img src="img/Snipaste_2024-06-04_17-03-41.jpg" alt="autoconfiguration" style="width:50%"/>
 
 ## 3. 常用註解、條件註解
 
@@ -257,7 +256,7 @@ public class MyConfig {
 
 如果是加到 @Component class 上，效果會不會是條件註解生效，才把 class 加到 IOC 呢，還有待測試。
 
-#### 範例
+#### 條件註解範例
 
  先添加 druid dependency，然後配置以下 configuration。
 
@@ -281,7 +280,7 @@ public class MyConfig {
 
 可以看到是 cat01 被加入到 IOC。
 
-<img src="img/Snipaste_2024-06-04_18-37-34.jpg" alt="條件註解範例" style="zoom:50%"/>
+<img src="img/Snipaste_2024-06-04_18-37-34.jpg" alt="條件註解範例" style="width:50%"/>
 
 ### 3.屬性綁定
 
@@ -318,13 +317,42 @@ public class MyConfig {
 >}
 >```
 
-<img src="img/Snipaste_2024-06-05_13-29-40.jpg" alt="result" style="zoom:50%"/>
+<img src="img/Snipaste_2024-06-05_13-29-40.jpg" alt="result" style="width:50%"/>
 
 #### @EnableConfigurationProperties 範例
 
 - 功能與`@ConfigurationProperties`一樣，差別在`@EnableConfigurationProperties`
 會把 Class 註冊到 IOC Container，下圖能看到使用了`@Import`。
 
-<img src="img/Snipaste_2024-06-05_13-56-22.jpg" text="result" alt="result" style="zoom:50%"/>
+<img src="img/Snipaste_2024-06-05_13-56-22.jpg" text="result" alt="result" style="width:50%"/>
 
 - 通常用於導入第三方庫成為 Bean 且進行屬性綁定。
+
+## SpringBoot 自動配置完整流程
+
+以`spring-boot-starter-web`為例。
+
+1. 導入`spring-boot-starter-web`後會透過依賴傳遞導入`spring-boot-starter`，而這個`spring-boot-starter`是所有 starter 都會導入的一個依賴，是自動配置的核心依賴。
+
+2. `spring-boot-starter`也會透過依賴傳遞導入`spring-boot-autoconfigure`，而`spring-boot-autoconfigure`則定義了各個 starter 的 autoconfiguration class，像是在`package org.springframework.boot.autoconfigure.web.servlet`下就定義了`DispatcherServletAutoConfiguration.class`。
+從下圖可以看到，只要class path下有者`DispatcherServlet.class`就會啟動這個自動配置類。<img src="img/Snipaste_2024-06-05_17-02-04.jpg" alt="自動配置圖" style="width:100%"/>
+而在`DispatcherServletAutoConfiguration`裡有個 Method 能看到就是註冊`DispatcherServlet`的。
+
+```java
+@Bean(name = DEFAULT_DISPATCHER_SERVLET_BEAN_NAME)
+public DispatcherServlet dispatcherServlet(WebMvcProperties webMvcProperties) {
+    DispatcherServlet dispatcherServlet = new DispatcherServlet();
+    dispatcherServlet.setDispatchOptionsRequest(webMvcProperties.isDispatchOptionsRequest());
+    dispatcherServlet.setDispatchTraceRequest(webMvcProperties.isDispatchTraceRequest());
+    configureThrowExceptionIfNoHandlerFound(webMvcProperties, dispatcherServlet);
+    dispatcherServlet.setPublishEvents(webMvcProperties.isPublishRequestHandledEvents());
+    dispatcherServlet.setEnableLoggingRequestDetails(webMvcProperties.isLogRequestDetails());
+    return dispatcherServlet;
+}
+```
+
+>能看到 `spring-boot-autoconfigure.org`下寫了所有 starter 的 autoconfigure。
+>
+><img src="img/Snipaste_2024-06-05_17-15-50.jpg" alt="autocon.jar" style="width:50%"/>
+
+3. 雖然在`spring-boot-autoconfigure`已經寫好了所有 starter 的自動配置，但 springboot 默認只掃描 `@SpringBootApplication` 所在的 package 及其子包，是
