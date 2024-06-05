@@ -289,7 +289,10 @@ public class MyConfig {
 
 - @EnableConfigurationProperties
 
-#### 範例
+#### @ConfigurationProperties 範例
+
+`@ConfigurationProperties`並不會把 Class 放到 IOC Container，因此要自己手動加上
+`@Component` 或 `@Bean`。
 
 >application.properties
 >
@@ -315,3 +318,10 @@ public class MyConfig {
 
 ![result](img/Snipaste_2024-06-05_13-29-40.jpg)
 
+#### @EnableConfigurationProperties 範例
+
+- 功能與`@ConfigurationProperties`一樣，差別在`@EnableConfigurationProperties`
+會把 Class 註冊到 IOC Container，下圖能看到使用了`@Import`。
+![result](img/Snipaste_2024-06-05_13-56-22.jpg)
+
+- 通常用於導入第三方庫成為 Bean 且進行屬性綁定。
