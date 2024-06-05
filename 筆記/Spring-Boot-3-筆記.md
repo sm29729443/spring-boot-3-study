@@ -84,7 +84,7 @@ public class HelloController {
 
 訪問 localhost:8081/hello。確認執行成功。
 
-![call request 圖片](img/Snipaste_2024-06-04_13-56-54.jpg)
+<img src="img/Snipaste_2024-06-04_13-56-54.jpg" alt="call request 圖片" style="zoom:75%"/>
 
 ### 打包 springboot
 
@@ -104,7 +104,7 @@ public class HelloController {
 
 接下來執行 `mvn clean package` 生成 jar 包，即可透過 `java -jar demo.jar` 運行 springboot project。
 
-![java 運行圖片](img/Snipaste_2024-06-04_14-06-39.jpg)
+<img src="img/Snipaste_2024-06-04_14-06-39.jpg" alt="java 運行圖片" style="zoom:100%"/>
 
 #### springboot 提供的打包插件與 maven 原生的差別
 
@@ -179,7 +179,7 @@ Spring Boot 了。
 如此一來，我們就不用自己去定義版本，不用嘗試哪些版本是有衝突的。
 當然沒被 `spring-boot-starter-parent` 管理到的 dependency 依然需要自己寫版本號。
 
-![原理圖](img/Snipaste_2024-06-04_16-19-37.jpg)
+<img src="img/Snipaste_2024-06-04_16-19-37.jpg" alt="原理圖" style="zoom:50%" />
 
 ### 2. 自動配置機制
 
@@ -322,6 +322,7 @@ public class MyConfig {
 
 - 功能與`@ConfigurationProperties`一樣，差別在`@EnableConfigurationProperties`
 會把 Class 註冊到 IOC Container，下圖能看到使用了`@Import`。
-![result](img/Snipaste_2024-06-05_13-56-22.jpg)
+
+<img src="img/Snipaste_2024-06-05_13-56-22.jpg" text="result" alt="result" style="zoom:50%"/>
 
 - 通常用於導入第三方庫成為 Bean 且進行屬性綁定。
