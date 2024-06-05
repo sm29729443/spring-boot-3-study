@@ -279,4 +279,39 @@ public class MyConfig {
  ```
 
 可以看到是 cat01 被加入到 IOC。
- ![123](img/Snipaste_2024-06-04_18-37-34.jpg)
+ ![條件註解範例](img/Snipaste_2024-06-04_18-37-34.jpg)
+
+### 3.屬性綁定
+
+將 IOC Container 中的 Bean 的屬性值與配置文件(application.properties)的配置項的值進行綁定。
+
+- @ConfigurationProperties
+
+- @EnableConfigurationProperties
+
+#### 範例
+
+>application.properties
+>
+>```properties
+>pig.id=1
+>pig.name=瓜瓜
+>pig.age=21
+>```
+
+>Pig Class
+>
+>```java
+>// 要記得加上 setter、getter 給底層調用
+>@ConfigurationProperties(prefix = "pig")
+>@Component
+>@Data
+>public class Pig {
+>    Integer id;
+>    String name;
+>    Integer age;
+>}
+>```
+
+![result](img/Snipaste_2024-06-05_13-29-40.jpg)
+
