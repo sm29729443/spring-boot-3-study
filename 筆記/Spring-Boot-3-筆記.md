@@ -321,12 +321,33 @@ public class MyConfig {
 
 #### @EnableConfigurationProperties 範例
 
-- 功能與`@ConfigurationProperties`一樣，差別在`@EnableConfigurationProperties`
-會把 Class 註冊到 IOC Container，下圖能看到使用了`@Import`。
+- 在`@ConfigurationProperties`的介紹中有說到要把 class 變成 Bean 則`@ConfigurationProperties`才會生效，而`@EnableConfigurationProperties`則提供了另種使`@EnableConfigurationProperties`生效的方式。
 
-<img src="img/Snipaste_2024-06-05_13-56-22.jpg" text="result" alt="result" style="width:50%"/>
+```java
+@Data
+@ConfigurationProperties(prefix = "sheep")
+public class Sheep {
+    Integer id;
+    String name;
+    Integer age;
+}
+```
 
-- 通常用於導入第三方庫成為 Bean 且進行屬性綁定。
+透過在啟動類或配置類添加`@EnableConfigurationProperties`使`@ConfigurationProperties`也能生效。
+
+```java
+@SpringBootApplication
+@EnableConfigurationProperties(value = Sheep.class)
+public class Boot302DemoApplication {
+
+    public static void main(String[] args) {
+        ConfigurableApplicationContext applicationContext = SpringApplication.run(Boot302DemoApplication.class, args);
+        System.out.println("stop");
+    }
+}
+```
+
+- 因為 spring-boot 默認只掃描`@SpringBootApplication`所在的 package，因此就算導入的第三方依賴有添加@`Component`、`ConfigurationProperties`等註解也沒用，因為 spring-boot 根本掃描不到，因此就可透過`@EnableConfigurationProperties`來使第三方依賴的 class 進行屬性綁定並添加到 IOC Container。
 
 ## SpringBoot 自動配置完整流程
 
@@ -335,7 +356,7 @@ public class MyConfig {
 1. 導入`spring-boot-starter-web`後會透過依賴傳遞導入`spring-boot-starter`，而這個`spring-boot-starter`是所有 starter 都會導入的一個依賴，是自動配置的核心依賴。
 
 2. `spring-boot-starter`也會透過依賴傳遞導入`spring-boot-autoconfigure`，而`spring-boot-autoconfigure`則定義了各個 starter 的 autoconfiguration class，像是在`package org.springframework.boot.autoconfigure.web.servlet`下就定義了`DispatcherServletAutoConfiguration.class`。
-從下圖可以看到，只要class path下有者`DispatcherServlet.class`就會啟動這個自動配置類。<img src="img/Snipaste_2024-06-05_17-02-04.jpg" alt="自動配置圖" style="width:100%"/>
+從下圖可以看到，只要 class path 下有者`DispatcherServlet.class`這個 configuration class 才會生效。<img src="img/Snipaste_2024-06-05_17-02-04.jpg" alt="自動配置圖" style="width:100%"/>
 而在`DispatcherServletAutoConfiguration`裡有個 Method 能看到就是註冊`DispatcherServlet`的。
 
 ```java
@@ -355,7 +376,9 @@ public DispatcherServlet dispatcherServlet(WebMvcProperties webMvcProperties) {
 >
 ><img src="img/Snipaste_2024-06-05_17-15-50.jpg" alt="autocon.jar" style="width:50%"/>
 
-3. 雖然在`spring-boot-autoconfigure`已經寫好了所有 starter 的自動配置，但 springboot 默認只掃描 `@SpringBootApplication` 所在的 package 及其子包，是掃不到`spring-boot-autoconfigure`下的配置類的，因此 spring-boot 是透過`@SpringBootApplication`->`@EnableAutoConfiguration`->`@Import(AutoConfigurationImportSelector.class)`先去註冊`AutoConfigurationImportSelector`成為 Bean 後，然後調用`AutoConfigurationImportSelector.getAutoConfigurationEntry()`方法去獲得 auto configuration class，其中在`getAutoConfigurationEntry()`裡會看到調用了`getCandidateConfigurations()`，而就是在這裡去獲得`spring-boot-autoconfigure`裡的自動配置類的。
+因此，現在知道並不是所有 auto configuration 都會生效，springboot 透過條件註解來決定生效的條件，譬如，只有當導入`spring-boot-starter-web`後，在 class path 下存在 `DispatcherServlet.class`後，`DispatcherServletAutoConfiguration`才會生效。
+
+3. 雖然在`spring-boot-autoconfigure`已經寫好了所有 starter 的 auto configuration，但 springboot 默認只掃描 `@SpringBootApplication` 所在的 package 及其子包，是掃不到`spring-boot-autoconfigure`下的配置類的，所以儘管 auto configuration 是生效的，但springboot 根本加載不到它們，因此 spring-boot 是透過`@SpringBootApplication`->`@EnableAutoConfiguration`->`@Import(AutoConfigurationImportSelector.class)`先去註冊`AutoConfigurationImportSelector`成為 Bean 後，然後調用`AutoConfigurationImportSelector.getAutoConfigurationEntry()`方法去獲得 auto configuration class，其中在`getAutoConfigurationEntry()`裡會看到調用了`getCandidateConfigurations()`，而就是在這裡去獲得`spring-boot-autoconfigure`裡的自動配置類的。
 
 >`AutoConfigurationImportSelector.getCandidateConfigurations()`
 >
@@ -372,4 +395,41 @@ public DispatcherServlet dispatcherServlet(WebMvcProperties webMvcProperties) {
 >	return configurations;
 >}
 >```
+
 ><img src="img/Snipaste_2024-06-06_11-58-47.jpg" alt="imports圖" style="width:100%"/>
+
+4. application.properties 的原理
+
+- 以 tomcat 為例，在`EmbeddedWebServerFactoryCustomizerAutoConfiguration`裡有者配置 tomcat 的方法。
+
+  ```java
+          @Bean
+        public TomcatWebServerFactoryCustomizer tomcatWebServerFactoryCustomizer(Environment environment, ServerProperties serverProperties) {
+            return new TomcatWebServerFactoryCustomizer(environment, serverProperties);
+        }
+  ```
+
+  可以看到傳了一個 `ServerProperties` 當作 tomcat 的配置文件，而這個`ServerProperties`就是透過`@EnableConfigurationProperties`去導入進來的。
+  <img src="img/Snipaste_2024-06-06_14-11-54.jpg" alt="EmbeddedWebServerFactoryCustomizerAutoConfiguration圖" style="width:75%"/>
+  
+  而這個`ServerProperties`則是透過 `@ConfigurationProperties` 去綁定到 application.properties 的屬性上，下圖能看到`prefix="server"`，因此 tomcat 的設定在 application.properties 都是以 server 開頭的。
+
+  <img src="img/Snipaste_2024-06-06_14-13-30.jpg" alt="ServerProperties.class 圖" style="width:70%"/>
+
+- 所以 application.properties 綁定邏輯為:
+
+  1.`ServerProperties`透過`@ConfigurationProperties`將 application.properties 的屬性值綁定到自己的屬性上。
+  
+  2.`EmbeddedWebServerFactoryCustomizerAutoConfiguration`透過`EnableConfigurationProperties`將`ServerProperties`導入進來。
+
+  3.在創建 tomccat 時將`ServerProperties`傳遞進去設定 tomcat 的配置細節。
+
+  ```java
+          @Bean
+        public TomcatWebServerFactoryCustomizer tomcatWebServerFactoryCustomizer(Environment environment, ServerProperties serverProperties) {
+            return new TomcatWebServerFactoryCustomizer(environment, serverProperties);
+        }
+  ```
+
+5. 核心步驟總結:
+   <img src="img/Snipaste_2024-06-06_14-37-05.jpg" alt="流程總結" style="width:100%"/>
