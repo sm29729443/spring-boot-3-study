@@ -355,4 +355,21 @@ public DispatcherServlet dispatcherServlet(WebMvcProperties webMvcProperties) {
 >
 ><img src="img/Snipaste_2024-06-05_17-15-50.jpg" alt="autocon.jar" style="width:50%"/>
 
-3. 雖然在`spring-boot-autoconfigure`已經寫好了所有 starter 的自動配置，但 springboot 默認只掃描 `@SpringBootApplication` 所在的 package 及其子包，是
+3. 雖然在`spring-boot-autoconfigure`已經寫好了所有 starter 的自動配置，但 springboot 默認只掃描 `@SpringBootApplication` 所在的 package 及其子包，是掃不到`spring-boot-autoconfigure`下的配置類的，因此 spring-boot 是透過`@SpringBootApplication`->`@EnableAutoConfiguration`->`@Import(AutoConfigurationImportSelector.class)`先去註冊`AutoConfigurationImportSelector`成為 Bean 後，然後調用`AutoConfigurationImportSelector.getAutoConfigurationEntry()`方法去獲得 auto configuration class，其中在`getAutoConfigurationEntry()`裡會看到調用了`getCandidateConfigurations()`，而就是在這裡去獲得`spring-boot-autoconfigure`裡的自動配置類的。
+
+>`AutoConfigurationImportSelector.getCandidateConfigurations()`
+>
+>實際上是透過 `ImportCandidates.load` 去加載配置類的，點進去能看到實際上去加載配置類的 path 就是 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports，而在 imports 裡則定義了所有自動配置類的 path。
+>
+>```java
+>protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, >AnnotationAttributes attributes) {
+>    List<String> configurations = ImportCandidates.load(AutoConfiguration.class, >getBeanClassLoader())
+>		.getCandidates();
+>	Assert.notEmpty(configurations,
+>			"No auto configuration classes found in "
+>					+ ".META-INF/spring/org.springframework.boot.autoconfigure.>AutoConfiguration.imports If you "
+>					+ "are using a custom packaging, make sure that file is correct.");
+>	return configurations;
+>}
+>```
+><img src="img/Snipaste_2024-06-06_11-58-47.jpg" alt="imports圖" style="width:100%"/>
