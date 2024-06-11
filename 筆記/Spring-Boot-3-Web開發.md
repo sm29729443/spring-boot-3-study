@@ -110,7 +110,7 @@ public class WebMvcAutoConfiguration {
 
 ##### `OrderedHiddenHttpMethodFilter` 功能
 
-結論:因為 HTML Form 只具備 GET、POST 兩種 Method，此 Filter 就是讓 HTML Form 也具備 PUT、DELETE 等其他 Method，如果是由 js 發送 http request 的話，則不會用到此 Filter，因為 js 本來就支持發送 PUT、DELETE 等 http request method。
+**先說結論:因為 HTML Form 只具備 GET、POST 兩種 Method，此 Filter 就是讓 HTML Form 也具備 PUT、DELETE 等其他 Method，如果是由 js 發送 http request 的話，則不會用到此 Filter，因為 js 本來就支持發送 PUT、DELETE 等 http request method。**
 
 實際上，瀏覽器的 HTML Form 表單只支持發送 GET、POST 兩種 http request，而可以發送 PUT、DELETE 實際上是由後端做了特別的處理的，在 Spring MVC 就是由`OrderedHiddenHttpMethodFilter`來做了這部分的處理。
 
@@ -161,3 +161,324 @@ public class WebMvcAutoConfiguration {
     ```
 
 ##### `OrderedFormContentFilter` 功能
+
+**目前的理解是這樣，不確定有沒有錯。**
+
+由 tomcat 所包裝的`HttpServletRequest`是無法透過`getParameter()`去拿到 method 為 PUT、DELETE、PATCH 的 Form 表單參數的，tomcat 只處理了 GET、POST 的表單資料，因此`FormContentFilter`的作用就是去將`HttpServletRequest`做二次包裝，讓這個`HttpServletRequest`可以透過`getParameter()`去拿到 Form 表單資料。
+
+可以看到`filterChain.doFilter`的 request 改成傳`FormContentRequestWrapper`，而這個`FormContentRequestWrapper`就是對`HttpServletRequest`的進一步包裝。
+
+```java
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        MultiValueMap<String, String> params = this.parseIfNecessary(request);
+        if (!CollectionUtils.isEmpty(params)) {
+            filterChain.doFilter(new FormContentRequestWrapper(request, params), response);
+        } else {
+            filterChain.doFilter(request, response);
+        }
+    }
+```
+
+能看到`FormContentRequestWrapper`是`HttpServletRequest`的子類。
+
+<img src="img/Snipaste_2024-06-07_17-44-27.jpg" alt="FormContentRequestWrapper繼承關係圖" style="width:75%"/>
+
+#### `WebMvcConfigurer interface`
+
+**這邊只簡單介紹一下`WebMvcConfigurer`，瞭解個大概即可，後續會對`WebMvcConfigurer`相關原理進行說明。**
+
+在 spring MVC 中，提供了一個 interface `WebMvcConfigurer`，這個 interface 提供了客製化配置 spring MVC 的方式，就我們而言，常用到的就添加 interceptor 等等方法。
+
+<img src="img/Snipaste_2024-06-07_18-44-05.jpg" alt="WebMvcConfigurer的Method" style="width:100%"/>
+
+而在`WebMvcAutoConfiguration`中就使用了一個`WebMvcConfigurer`的實現類`static class WebMvcAutoConfigurationAdapter`來設定了一些 spring MVC 相關的配置。
+
+所以`WebMvcAutoConfigurationAdapter`最主要的是往 IOC 放入一個`WebMvcConfigurer`類型的Bean，並透過`WebMvcConfigurer`提供的Method去客製化的配置 Spring MVC。
+
+```java
+	@Configuration(proxyBeanMethods = false)
+	@Import(EnableWebMvcConfiguration.class)
+	@EnableConfigurationProperties({ WebMvcProperties.class, WebProperties.class })
+	@Order(0)
+	public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer, ServletContextAware {
+        // override 了一些 WebMvcConfigurer Method
+    }
+```
+
+#### spring MVC 與配置文件的綁定
+
+點進去這兩個 `Properties.class` 後可以看到對應到`application.properties`的:
+
+- 1.`WebMvcProperties`:spring.mvc。
+- 2.`WebProperties`:spring.web。
+
+```java
+@EnableConfigurationProperties({ WebMvcProperties.class, WebProperties.class })
+public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer, ServletContextAware {
+}
+```
+
+### 靜態資源規則源碼
+
+spring MVC 的靜態資源就是透過實現類`WebMvcAutoConfigurationAdapter`去實現`WebMvcConfigurer`的`addResourceHandlers()`來配置的。
+
+```java
+		@Override
+		public void addResourceHandlers(ResourceHandlerRegistry registry) {
+			if (!this.resourceProperties.isAddMappings()) {
+				logger.debug("Default resource handling disabled");
+				return;
+			}
+            // 1.
+            // getWebjarsPathPattern() == "/webjars/**"
+			addResourceHandler(registry, this.mvcProperties.getWebjarsPathPattern(),
+					"classpath:/META-INF/resources/webjars/");
+            
+            // 2.
+            // getStaticPathPattern() == "/**"
+			addResourceHandler(registry, this.mvcProperties.getStaticPathPattern(), (registration) -> {
+                // getStaticLocations() 提供 4 個默認靜態資源路徑
+				registration.addResourceLocations(this.resourceProperties.getStaticLocations());
+				if (this.servletContext != null) {
+					ServletContextResource resource = new ServletContextResource(this.servletContext, SERVLET_LOCATION);
+					registration.addResourceLocations(resource);
+				}
+			});
+		}
+```
+
+- 1.當訪問 url 為 `/webjars/**` 時去`classpath:/META-INF/resources/webjars/`找資源。
+
+- 2.當訪問 url 為 `/**` 時去靜態資源默認的四個位置找資源:
+  - 1. `classpath:/META-INF/resources/`
+  - 2. `classpath:/resources/`
+  - 3. `classpath:/static/`
+  - 4. `classpath:/public/`
+
+- 3.靜態資源的緩存設定
+
+    當瀏覽器訪問的是一個靜態資源(html、js、jpg 等等)時，若後端 server 中這個資源並沒有發生變化，則下次訪問時，瀏覽器就能用自己緩存中的資源，而不用再次向 server 發送請求。
+
+    一樣也是在 `addResourceHandler()` 中透過以下 CODE 設定，都是在配置緩存相關的參數，這裡不多做說明。
+
+    所有緩存的配置，都可透過 `application.properties:spring.web`配置。
+
+    ```java
+    registration.setCachePeriod(getSeconds(this.resourceProperties.getCache().getPeriod()));
+	registration.setCacheControl(this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl());
+	registration.setUseLastModified(this.resourceProperties.getCache().isUseLastModified());
+    ```
+
+### spring boot 歡迎頁
+
+這裡說明 spring boot 的歡迎頁是如何設定的。
+
+歡迎頁是在`WebMvcAutoConfiguration`的內部類`EnableWebMvcConfiguration`裡設定的。
+
+`createWelcomePageHandlerMapping()`點進去會看到一系列的程式邏輯，要了解直接來看此 Method。
+
+```java
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(WebProperties.class)
+public static class EnableWebMvcConfiguration extends DelegatingWebMvcConfiguration implements ResourceLoaderAware {
+    	@Bean
+		public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext,
+				FormattingConversionService mvcConversionService, ResourceUrlProvider mvcResourceUrlProvider) {
+			return createWelcomePageHandlerMapping(applicationContext, mvcConversionService, mvcResourceUrlProvider,
+					WelcomePageHandlerMapping::new);
+		}
+}
+```
+
+1. `HandlerMapping`:根據當前請求的 url 路徑去找哪個 Handler 可以處理。
+
+   - 1. `WelcomePageHandlerMapping`:
+
+        - 1. 訪問 url 為 `/**` 下的所有請求，會在四個靜態資源路徑下尋找 `index.html`，spring boot 默認啟動訪問。
+
+### 配置靜態資源的兩種方式
+
+#### 1. `application.properties`
+
+就是在`application.properties`透過`spring.mvc`、`spring.web`配置。
+
+#### 2. `@Configuration` + `WebMvcConfigurer`
+
+就是使用一個自定義 class 實現 `WebMvcConfigurer` 且添加`@Configuration`註解。
+
+```java
+@Configuration //这是一个配置类,给容器中放一个 WebMvcConfigurer 组件，就能自定义底层
+public class MyConfig  /*implements WebMvcConfigurer*/ {
+
+
+    @Bean
+    public WebMvcConfigurer webMvcConfigurer(){
+        return new WebMvcConfigurer() {
+            @Override
+            public void addResourceHandlers(ResourceHandlerRegistry registry) {
+                registry.addResourceHandler("/static/**")
+                        .addResourceLocations("classpath:/a/", "classpath:/b/")
+                        .setCacheControl(CacheControl.maxAge(1180, TimeUnit.SECONDS));
+            }
+        };
+    }
+
+}
+```
+
+也可以用一個`WebMvcConfigurer`的匿名實現類，添加到 IOC 的作法，反正只是要讓 IOC 裡面有`WebMvcConfigurer`就好。
+
+## 為什麼 IOC 中放入 `WebMvcConfigurer` 即可配置底層行為
+
+- 1. 在 `WebMvcAutoConfiguration` 中有個`EnableWebMvcConfiguration`
+
+- 2. `EnableWebMvcConfiguration` 會繼承於 `DelegatingWebMvcConfiguration`
+
+- 3. `DelegatingWebMvcConfiguration` 利用 DI 把 IOC 中的所有`WebMvcConfigurer` 都注入近來
+
+    ```java
+    public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport {
+    private final WebMvcConfigurerComposite configurers = new WebMvcConfigurerComposite();
+
+    // 注入 IOC 中所有的`WebMvcConfigurer`到 configurers
+        @Autowired(
+        required = false
+    )
+    public void setConfigurers(List<WebMvcConfigurer> configurers) {
+        if (!CollectionUtils.isEmpty(configurers)) {
+            this.configurers.addWebMvcConfigurers(configurers);
+        }
+
+    }
+
+    /*
+    提供了代理方法，其他類會透過調用DelegatingWebMvcConfiguration.addInterceptors()去配置spring MVC 底層，而DelegatingWebMvcConfiguration會去調用 IOC 中的所有WebMvcConfigurer
+    */
+    protected void addInterceptors(InterceptorRegistry registry) {
+        this.configurers.addInterceptors(registry);
+    }
+
+    }
+    ```
+
+- 4. `DelegatingWebMvcConfiguration` 提供了很多代理方法，當其他 Class 調用`DelegatingWebMvcConfiguration` 配置底層規則時，`DelegatingWebMvcConfiguration`會去調用 IOC 中的所有`WebMvcConfigurer`。
+
+**教學中提到其他類會調用`DelegatingWebMvcConfiguration`去配置 spring MVC 底層，目前還不知道這個其他類是指誰，譬如要添加攔截器，我們會往 IOC 中放入一個使用了`addInterceptor()`的`WebMvcConfigurer`，但是哪個 Class 調用了`DelegatingWebMvcConfiguration`的`addInterceptor()`，再使得`DelegatingWebMvcConfiguration`去調用所有`WebMvcConfigurer`的`addInterceptor()`目前還不清楚。**
+
+## 路徑匹配
+
+Spring 以前只支持 AntPathMatcher 策略，現在多提供了 PathPatternParser 策略，現在默認設定也是 PathPatternParser，但可以配置要使用哪種風格。
+
+### 1. Ant 風格的路徑用法
+
+- *：表示任意數量的字元。
+- ?：表示任意一個字元。
+- **：表示任意數量的目錄。
+- {}：表示一個已命名的模式佔位符，指的應該是添加`@PathVariable`的參數。
+- []：表示字元集合，例如[a-z]表示小寫字母。
+
+注意：Ant 風格的路徑模式語法中的特殊字元需要轉義，如：
+- 若要符合檔案路徑中的星號，則需要轉義為\\*。
+- 若要符合檔案路徑中的問號，則需要轉義為\\?。
+
+#### Example
+
+- *.html 符合任意名稱，副檔名為.html的檔案。
+- /folder1/*/*.java 符合在folder1目錄下的任兩級目錄下的.java檔。
+- /folder2/**/*.jsp 符合在folder2目錄下任意目錄深度的.jsp檔。
+- /{type}/{id}.html 符合任意檔案名稱為{id}.html，在任意命名的{type}目錄下的檔案。
+
+### 2. 模式切換
+
+#### AntPathMatcher 與 PathPatternParser
+
+- PathPatternParser 在 jmh 基準測試下，有 6~8 倍吞吐量提升，降低 30%~40% 空間分配率
+- PathPatternParser 相容於 AntPathMatcher語法，並支援更多類型的路徑模式
+- PathPatternParser "**" 多段匹配的支援僅允許在模式末尾使用
+
+```java
+@GetMapping("/a*/b?/{p1:[a-f]+}")
+    public String hello(HttpServletRequest request,
+    @PathVariable("p1") String path) {
+
+    log.info("路徑變數p1： {}", path);
+    //取得請求路徑
+    String uri = request.getRequestURI();
+    return uri;
+ }
+```
+
+### 3.PathPatternParser
+
+這篇幅主要是想補充 PathPatternParser 又支援了那些路徑模式。
+之後待補。
+
+## 內容協商(Content Negotiation)
+
+這章節介紹如果使一個 API 返回不同的數據格式(JSON、XML、其他自定義格式等等)。
+
+<img src="img/Snipaste_2024-06-11_16-07-59.jpg" alt="數據格式圖" style="width:70%"/>
+
+### 主要有兩種方式來實現 Content Negotiation
+
+- #### 1. http header
+
+  spring boot 默認允許在 http request header 攜帶 Accept 參數來決定要 return 的數據類型。
+
+  Accept: application/json、text/xml、text/yaml。
+
+- #### 2. 基於 http request parameter
+
+  spring boot 默認是不允許透過此方式的，需要在`application.properties`開啟。
+  
+  ```properties
+  # 允許使用 http request parameter 的方式來實現Content Negotiation
+  spring.mvc.contentnegotiation.favor-parameter=true  
+  ```
+
+### 使用流程
+
+- step.1 引入支持寫出 xml 的依賴
+
+  ```xml
+  <dependency>
+    <groupId>com.fasterxml.jackson.dataformat</groupId>
+    <artifactId>jackson-dataformat-xml</artifactId>
+  </dependency>
+  ```
+
+- step.2
+  
+  ```java
+  @JacksonXmlRootElement  // 允許寫出為 xml 格式
+    @Data
+    public class Person {
+        private Long id;
+        private String userName;
+        private String email;
+        private Integer age;
+    }
+  ```
+
+- step.3 允許 http req parameter
+  
+  如果需要使用 http req parameter 來動態決定返回的數據格式的話，需要配置此步驟。
+  
+  ```properties
+    # 開啟基於請求參數的內容協商功能。 預設參數名：format。 預設此功能不開啟
+    spring.mvc.contentnegotiation.favor-parameter=true
+    # 指定內容協商時所使用的參數名。預設是 format
+    spring.mvc.contentnegotiation.parameter-name=type
+  ```
+
+- result
+
+透過 postman 發送 req 可以看到會根據 Accept 的值獲得不同的數據類型。
+
+就不展示 http req para 的用法了，就只是 url 變成 `http://localhost:8081/PersonTest?format=`而已。
+
+<img src="img/Snipaste_2024-06-11_16-31-17.jpg" alt="json格式" style="width:70%" />
+
+<img src="img/Snipaste_2024-06-11_16-33-04.jpg" alt="json格式" style="width:70%" />
+
+## 1235
